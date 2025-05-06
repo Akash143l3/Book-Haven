@@ -1,8 +1,18 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+
+// Skeleton Loader Component
+const SkeletonLoader = () => {
+  return (
+    <div className="space-y-4">
+      <div className="w-full h-8 bg-gray-200 rounded-md animate-pulse"></div>
+      <div className="w-full h-8 bg-gray-200 rounded-md animate-pulse"></div>
+      <div className="w-full h-8 bg-gray-200 rounded-md animate-pulse"></div>
+    </div>
+  );
+};
 
 interface Collection {
   _id: string;
@@ -11,15 +21,15 @@ interface Collection {
 }
 
 export default function BookCollections({ bookId }: { bookId: string }) {
-  const { toast } = useToast(); // Use toast for notifications
+  const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [removingCollectionId, setRemovingCollectionId] = useState<
     string | null
   >(null);
   const [selectedCollection, setSelectedCollection] = useState("");
+  const [isLoading, setIsLoading] = useState(true); // Add a loading state
 
-  // Fetch user collections on mount
   useEffect(() => {
     const fetchCollections = async () => {
       try {
@@ -27,7 +37,6 @@ export default function BookCollections({ bookId }: { bookId: string }) {
         const data = await res.json();
         setCollections(data);
 
-        // Set first collection as default selected if available
         if (data.length > 0) {
           setSelectedCollection(data[0]._id);
         }
@@ -39,12 +48,14 @@ export default function BookCollections({ bookId }: { bookId: string }) {
           duration: 5000,
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false); // Set loading to false when data is fetched
       }
     };
+
     fetchCollections();
   }, [toast]);
 
-  // Add book to collection
   const handleAdd = async () => {
     if (!selectedCollection) {
       toast({
@@ -65,7 +76,6 @@ export default function BookCollections({ bookId }: { bookId: string }) {
       });
 
       if (res.ok) {
-        // Update the local state to reflect the change
         setCollections(
           collections.map((collection) => {
             if (
@@ -107,7 +117,6 @@ export default function BookCollections({ bookId }: { bookId: string }) {
     }
   };
 
-  // Remove book from collection
   const handleRemove = async (collectionId: string) => {
     setRemovingCollectionId(collectionId);
     try {
@@ -119,7 +128,6 @@ export default function BookCollections({ bookId }: { bookId: string }) {
       );
 
       if (res.ok) {
-        // Update the local state to reflect the change
         setCollections(
           collections.map((collection) => {
             if (collection._id === collectionId) {
@@ -162,7 +170,9 @@ export default function BookCollections({ bookId }: { bookId: string }) {
     <div className="mt-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
       <h3 className="text-lg font-medium mb-4">Manage Collections</h3>
 
-      {collections.length === 0 ? (
+      {isLoading ? (
+        <SkeletonLoader /> // Display skeleton loader when loading
+      ) : collections.length === 0 ? (
         <p className="text-gray-500">
           You don&apos;t have any collections yet.
         </p>

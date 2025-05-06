@@ -1,7 +1,8 @@
-// BookDetailPage.tsx
+// src/app/books/[id]/page.tsx
 import { getBookById } from "../../../lib/mongodb";
 import Image from "next/image";
 import BookCollections from "@/components/BookCollections";
+import BookActions from "@/components/BookActions";
 
 export default async function BookDetailPage({
   params,
@@ -74,6 +75,9 @@ export default async function BookDetailPage({
               </div>
             </div>
           </div>
+
+          {/* Add Client Component here */}
+          <BookActions bookId={book._id.toString()} />
         </div>
       </div>
     </div>
