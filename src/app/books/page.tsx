@@ -2,28 +2,38 @@
 
 import { useState, useEffect } from "react";
 import BookList from "@/components/BookList";
+import { useToast } from "@/components/ui/use-toast"; // ✅ Toast import
 
 export default function BooksPage() {
   const [books, setBooks] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredBooks, setFilteredBooks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true); // 🔄 Loading state
+  const [loading, setLoading] = useState(true);
+
+  const { toast } = useToast(); // ✅ Use toast
 
   useEffect(() => {
     const fetchBooks = async () => {
       try {
         const res = await fetch("/api/books");
+        if (!res.ok) throw new Error("Network response was not ok");
+
         const data = await res.json();
         setBooks(data);
-        setLoading(false); // ✅ Set loading to false once data is fetched
       } catch (error) {
         console.error("Failed to fetch books:", error);
-        setLoading(false); // Even on error, stop loading
+        toast({
+          title: "Error loading books",
+          description: "Something went wrong while fetching the book list.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchBooks();
-  }, []);
+  }, [toast]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value.toLowerCase();
@@ -48,7 +58,7 @@ export default function BooksPage() {
           className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={searchQuery}
           onChange={handleSearch}
-          disabled={loading} // Optionally disable search while loading
+          disabled={loading}
         />
       </div>
 

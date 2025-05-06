@@ -1,6 +1,7 @@
 "use client";
 import { useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/components/ui/use-toast";
 
 interface BookFormData {
   title: string;
@@ -62,7 +63,11 @@ export default function AddBookPage() {
       if (!response.ok) {
         throw new Error("Failed to add book");
       }
-
+      toast({
+        title: "Book added successfully!",
+        description: "The new book has been saved to the library.",
+        variant: "add",
+      });
       router.push("/books");
       router.refresh();
     } catch (err) {

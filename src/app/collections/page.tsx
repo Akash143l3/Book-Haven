@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
 
 type BookType = {
   _id: string;
@@ -16,11 +17,12 @@ export default function CollectionsPage() {
   const [collections, setCollections] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isPending, setIsPending] = useState(false);
   const [books, setBooks] = useState<BookType[]>([]);
   const [collection, setCollection] = useState<any>(null);
 
+  const { toast } = useToast();
   const params = useParams();
   const id = params?.id;
 
@@ -36,7 +38,6 @@ export default function CollectionsPage() {
     }
   }, []);
 
-  // Placeholder for fetchCollection if needed
   const fetchCollection = useCallback(async () => {
     if (!id) return;
     try {
@@ -54,12 +55,15 @@ export default function CollectionsPage() {
   }, [fetchCollections, fetchCollection]);
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
 
     setLoading(true);
     const res = await fetch("/api/collections", {
       method: "POST",
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, description }),
       headers: {
         "Content-Type": "application/json",
       },
@@ -68,10 +72,15 @@ export default function CollectionsPage() {
     setLoading(false);
     if (res.ok) {
       setName("");
+      setDescription("");
       setShowModal(false);
-      fetchCollections(); // Refresh list
+      toast({ title: "Collection created successfully!" });
+      fetchCollections();
     } else {
-      alert("Failed to create collection");
+      toast({
+        title: "Failed to create collection",
+        variant: "destructive",
+      });
     }
   };
 
@@ -112,7 +121,7 @@ export default function CollectionsPage() {
                 key={collection._id}
               >
                 <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
-                  <div className="h-48 bg-gray-200 flex items-center justify-center">
+                  <div className="h-48 bg-gray-200 flex items-center justify-center relative">
                     {collection.coverImage ? (
                       <Image
                         src={collection.coverImage}
@@ -144,6 +153,12 @@ export default function CollectionsPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Collection name"
+              className="w-full border px-3 py-2 rounded mb-4"
+            />
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description (optional)"
               className="w-full border px-3 py-2 rounded mb-4"
             />
             <div className="flex justify-end gap-2">
