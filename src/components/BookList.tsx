@@ -18,6 +18,8 @@ export default function BookList({ books }: BookListProps) {
                   src={book.coverImage}
                   alt={book.title}
                   className="h-full w-full object-cover"
+                  width={500}
+                  height={300}
                 />
               ) : (
                 <div className="text-gray-400">No cover image</div>

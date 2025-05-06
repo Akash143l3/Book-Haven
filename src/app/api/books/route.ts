@@ -1,4 +1,3 @@
-// File: app/api/books/route.ts - Books API routes
 import { NextRequest, NextResponse } from "next/server";
 import { addBook, getBooks, searchBooks } from "../../../lib/mongodb";
 
@@ -40,6 +39,11 @@ export async function POST(request: NextRequest) {
     // You can validate or process other fields here if needed
     if (!bookData.publishedDate) {
       bookData.publishedDate = new Date().toISOString(); // default to today's date if not provided
+    }
+
+    // Handle coverImage (could be URL string or null/undefined)
+    if (!bookData.coverImage) {
+      bookData.coverImage = null; // default to null if not provided
     }
 
     const result = await addBook(bookData);

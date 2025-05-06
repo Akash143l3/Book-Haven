@@ -2,6 +2,7 @@
 import { useState, FormEvent, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/use-toast";
+import Image from "next/image";
 
 interface BookFormData {
   title: string;
@@ -14,6 +15,7 @@ interface BookFormData {
   publisher: string;
   language: string;
   format: string;
+  coverImage: string; // To store base64 image data
 }
 
 export default function AddBookPage() {
@@ -29,6 +31,7 @@ export default function AddBookPage() {
     publisher: "",
     language: "",
     format: "Paperback",
+    coverImage: "",
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -43,6 +46,20 @@ export default function AddBookPage() {
     }));
   };
 
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          coverImage: reader.result as string, // This will be the base64 string of the image
+        }));
+      };
+      reader.readAsDataURL(file); // Read the file as a data URL (base64 string)
+    }
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -54,15 +71,14 @@ export default function AddBookPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          pageCount: parseInt(formData.pageCount) || 0,
-        }),
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add book");
+        const errData = await response.json();
+        throw new Error(errData?.message || "Failed to add book");
       }
+
       toast({
         title: "Book added successfully!",
         description: "The new book has been saved to the library.",
@@ -143,7 +159,30 @@ export default function AddBookPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
         </div>
-
+        <div>
+          <label
+            htmlFor="coverImage"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Cover Image
+          </label>
+          <input
+            type="file"
+            id="coverImage"
+            name="coverImage"
+            onChange={handleImageChange}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {formData.coverImage && (
+            <div className="mt-4">
+              <Image
+                src={formData.coverImage}
+                alt="Cover Preview"
+                className="w-32 h-32 object-cover rounded"
+              />
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label

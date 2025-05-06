@@ -30,6 +30,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const bookData = await request.json();
+
+    // If updating coverImage is included in the request, ensure it's properly handled
+    // If coverImage is explicitly set to null or empty string, we'll keep that value
+    if (!("coverImage" in bookData)) {
+      // If coverImage isn't provided in the update, we don't modify the existing value
+      // So we don't need to do anything special here
+    }
+
     const result = await updateBook(params.id, bookData);
 
     if (result.matchedCount === 0) {
@@ -46,6 +54,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
+// DELETE /api/books/[id] - Delete a book
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const result = await deleteBook(params.id);
