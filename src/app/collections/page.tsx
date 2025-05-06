@@ -18,10 +18,8 @@ export default function CollectionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [coverImage, setCoverImage] = useState<string>("");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
-  const [books, setBooks] = useState<BookType[]>([]);
-  const [collection, setCollection] = useState<any>(null);
 
   const { toast } = useToast();
   const params = useParams();
@@ -39,22 +37,6 @@ export default function CollectionsPage() {
     }
   }, []);
 
-  const fetchCollection = useCallback(async () => {
-    if (!id) return;
-    try {
-      const res = await fetch(`/api/collections/${id}`);
-      const data = await res.json();
-      setCollection(data);
-    } catch (error) {
-      console.error("Error fetching single collection:", error);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchCollections();
-    fetchCollection();
-  }, [fetchCollections, fetchCollection]);
-
   const handleCreate = async () => {
     if (!name.trim()) {
       toast({ title: "Name is required", variant: "destructive" });
@@ -62,19 +44,22 @@ export default function CollectionsPage() {
     }
 
     setLoading(true);
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    if (coverImage) formData.append("coverImage", coverImage);
+
     const res = await fetch("/api/collections", {
       method: "POST",
-      body: JSON.stringify({ name, description, coverImage }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      body: formData,
     });
 
     setLoading(false);
     if (res.ok) {
       setName("");
       setDescription("");
-      setCoverImage("");
+      setCoverImage(null);
       setShowModal(false);
       toast({ title: "Collection created successfully!" });
       fetchCollections();
@@ -164,10 +149,10 @@ export default function CollectionsPage() {
               className="w-full border px-3 py-2 rounded mb-4"
             />
             <input
-              type="text"
-              value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              placeholder="Cover image URL (optional)"
+              type="file"
+              onChange={(e) =>
+                setCoverImage(e.target.files ? e.target.files[0] : null)
+              }
               className="w-full border px-3 py-2 rounded mb-4"
             />
             <div className="flex justify-end gap-2">
