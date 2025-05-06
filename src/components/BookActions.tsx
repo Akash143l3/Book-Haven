@@ -19,8 +19,10 @@ export default function BookActions({ bookId }: { bookId: string }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state for deletion
 
   const handleDelete = async () => {
+    setLoading(true); // Set loading to true when starting the deletion
     const res = await fetch(`/api/books/${bookId}`, {
       method: "DELETE",
     });
@@ -31,10 +33,11 @@ export default function BookActions({ bookId }: { bookId: string }) {
     } else {
       toast({ title: "Failed to delete the book.", variant: "destructive" });
     }
+    setLoading(false); // Set loading to false after the request completes
   };
 
   return (
-    <div className="flex gap-6 pt-10 ">
+    <div className="flex gap-6 pt-10">
       {/* Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogTrigger asChild>
@@ -65,8 +68,12 @@ export default function BookActions({ bookId }: { bookId: string }) {
             <DialogClose asChild>
               <Button variant="ghost">Cancel</Button>
             </DialogClose>
-            <Button variant="destructive" onClick={handleDelete}>
-              Confirm
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={loading} // Disable the button while loading
+            >
+              {loading ? "Deleting..." : "Confirm"} {/* Display loading text */}
             </Button>
           </DialogFooter>
         </DialogContent>

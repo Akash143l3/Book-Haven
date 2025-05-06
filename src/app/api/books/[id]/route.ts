@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookById, updateBook, deleteBook } from "../../../../lib/mongodb";
+import {
+  getBookById,
+  updateBook,
+  deleteBook,
+  connectToDatabase,
+} from "../../../../lib/mongodb";
+import { Collection, ObjectId } from "mongodb";
 
 interface Params {
   params: {
@@ -57,11 +63,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
 // DELETE /api/books/[id] - Delete a book
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const result = await deleteBook(params.id);
+    const { db } = await connectToDatabase();
+    const bookId = new ObjectId(params.id);
 
+    // 1. Delete the book
+    const result = await deleteBook(params.id);
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Book not found" }, { status: 404 });
     }
+
+    await db.collection("collections").updateMany(
+      { bookIds: bookId },
+      {
+        $pull: { bookIds: bookId } as any,
+        $set: { updatedAt: new Date() },
+      }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

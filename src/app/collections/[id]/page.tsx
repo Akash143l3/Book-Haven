@@ -14,20 +14,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast"; // ✅ Toast
+import { Loader2, Image as ImageIcon } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import Link from "next/link";
+import Image from "next/image";
 
 interface Book {
   _id: string;
   title: string;
   author: string;
   description?: string;
+  coverImage?: string;
 }
 
 interface Collection {
   _id: string;
   name: string;
   description?: string;
+  coverImage?: string;
   userId: string;
   bookIds: string[];
   createdAt: string;
@@ -37,7 +41,7 @@ interface Collection {
 export default function CollectionPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { toast } = useToast(); // ✅ Init toast
+  const { toast } = useToast();
 
   const [collection, setCollection] = useState<Collection | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -50,6 +54,24 @@ export default function CollectionPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAddingBook, setIsAddingBook] = useState(false);
   const [isRemovingBook, setIsRemovingBook] = useState<string | null>(null);
+
+  // For cover image handling
+  const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
+    null
+  );
+
+  // Function to convert image file to base64
+  const convertImageToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   useEffect(() => {
     const fetchCollection = async () => {
@@ -91,27 +113,65 @@ export default function CollectionPage() {
       fetchCollection();
       fetchAllBooks();
     }
-  }, [id, toast]); // ✅ Added toast to dependencies
+  }, [id, toast]);
+
+  // Reset cover image preview when dialog opens
+  useEffect(() => {
+    if (editOpen && collection) {
+      setCoverImagePreview(collection.coverImage || null);
+      setNewCoverImage(null);
+    }
+  }, [editOpen, collection]);
+
+  // Handle cover image change
+  const handleCoverImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setNewCoverImage(file);
+
+      try {
+        const base64 = await convertImageToBase64(file);
+        setCoverImagePreview(base64);
+      } catch (error) {
+        console.error("Error converting image:", error);
+        toast({
+          title: "Error",
+          description: "Failed to process image",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const handleUpdate = async () => {
     if (!collection) return;
     setIsUpdating(true);
 
     try {
+      let updatedData: Partial<Collection> = {
+        name: collection.name,
+        description: collection.description,
+      };
+
+      // If a new cover image was selected, include it in the update
+      if (newCoverImage) {
+        const base64Image = await convertImageToBase64(newCoverImage);
+        updatedData.coverImage = base64Image;
+      }
+
       await fetch(`/api/collections/${id}`, {
         method: "PUT",
-        body: JSON.stringify({
-          name: collection.name,
-          description: collection.description,
-        }),
+        body: JSON.stringify(updatedData),
       });
 
       toast({ title: "Collection updated successfully." });
       setEditOpen(false);
 
       const res = await fetch(`/api/collections/${id}`);
-      const updatedData = await res.json();
-      setCollection(updatedData);
+      const updated = await res.json();
+      setCollection(updated);
     } catch (error) {
       toast({
         title: "Error",
@@ -204,19 +264,37 @@ export default function CollectionPage() {
   );
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-8 max-w-5xl mx-auto space-y-6 my-6 border-t bg-white rounded-lg shadow-lg">
+      <div className="flex justify-between items-center mb-4">
         {isPending ? (
           <Skeleton className="h-8 w-40" />
         ) : (
-          <h1 className="text-3xl font-bold">{collection?.name}</h1>
+          <>
+            <div className="flex items-center space-x-4">
+              {collection?.coverImage && (
+                <div className="w-16 h-16 relative rounded-md overflow-hidden">
+                  <Image
+                    src={collection.coverImage}
+                    alt={collection.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <h1 className="text-4xl font-extrabold text-gray-800">
+                {collection?.name}
+              </h1>
+            </div>
+          </>
         )}
 
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogTrigger asChild>
-            <Button>Edit Collection</Button>
+            <Button className="bg-blue-600 text-white hover:bg-blue-700">
+              Edit Collection
+            </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Edit Collection</DialogTitle>
             </DialogHeader>
@@ -229,7 +307,9 @@ export default function CollectionPage() {
                     prev ? { ...prev, name: e.target.value } : prev
                   )
                 }
+                className="border-gray-300"
               />
+
               <Label>Description</Label>
               <Textarea
                 value={collection?.description || ""}
@@ -238,9 +318,41 @@ export default function CollectionPage() {
                     prev ? { ...prev, description: e.target.value } : prev
                   )
                 }
+                className="border-gray-300"
               />
+
+              <div className="space-y-2">
+                <Label>Cover Image</Label>
+
+                {/* Cover Image Preview */}
+                {coverImagePreview && (
+                  <div className="w-full h-40 relative rounded-md overflow-hidden border border-gray-300 mb-2">
+                    <Image
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* File Input */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="border-gray-300 flex-1"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2">
-                <Button onClick={handleUpdate} disabled={isUpdating}>
+                <Button
+                  onClick={handleUpdate}
+                  disabled={isUpdating}
+                  className="flex-1"
+                >
                   {isUpdating ? (
                     <Loader2 className="animate-spin h-5 w-5" />
                   ) : (
@@ -251,6 +363,7 @@ export default function CollectionPage() {
                   variant="destructive"
                   onClick={handleDelete}
                   disabled={isDeleting}
+                  className="flex-1"
                 >
                   {isDeleting ? (
                     <Loader2 className="animate-spin h-5 w-5" />
@@ -267,13 +380,15 @@ export default function CollectionPage() {
       {isPending ? (
         <Skeleton className="h-5 w-60" />
       ) : (
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-lg text-gray-500">
           {collection?.description || "No description available."}
         </p>
       )}
 
-      <hr className="my-6" />
-      <h2 className="text-2xl font-semibold">Books in Collection</h2>
+      <hr className="my-6 border-t-2 border-gray-200" />
+      <h2 className="text-3xl font-semibold text-gray-700">
+        Books in Collection
+      </h2>
 
       {isPending ? (
         <div className="space-y-3">
@@ -281,43 +396,67 @@ export default function CollectionPage() {
           <Skeleton className="h-16 w-full" />
         </div>
       ) : books.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No books added yet.</p>
+        <p className="text-sm text-gray-500">No books added yet.</p>
       ) : (
-        <div className="max-h-[400px] overflow-y-auto pr-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {books.map((book) => (
-              <div
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {books.map((book) => (
+            <div
+              key={book._id}
+              className="relative flex flex-col items-start w-full border border-gray-300 p-6 rounded-lg shadow-xl hover:shadow-2xl transition-shadow duration-300 ease-in-out"
+            >
+              {/* Card Content */}
+              <Link
+                href={`/books/${book._id}`}
                 key={book._id}
-                className="flex flex-col items-start border p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 ease-in-out"
+                className="relative flex flex-col items-start w-full space-y-4"
               >
-                <div className="space-y-2">
-                  <div className="font-medium text-xl">{book.title}</div>
-                  <div className="text-sm text-gray-500">{book.author}</div>
+                {/* Book Cover */}
+                {book.coverImage && (
+                  <div className="w-full h-48 relative rounded-md overflow-hidden mb-4">
+                    <Image
+                      src={book.coverImage}
+                      alt={book.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* Title and Author */}
+                <div className="text-center space-y-2">
+                  <div className="font-semibold text-2xl text-gray-900">
+                    {book.title}
+                  </div>
+                  <div className="text-sm text-gray-600">{book.author}</div>
                 </div>
+
+                {/* Book Description */}
                 {book.description && (
-                  <div className="mt-4 text-sm text-gray-700">
+                  <div className="text-sm text-gray-700 mt-4">
                     <p>{book.description}</p>
                   </div>
                 )}
-                <Button
-                  variant="outline"
-                  onClick={() => handleRemoveBook(book._id)}
-                  className="mt-4 self-start"
-                  disabled={isRemovingBook === book._id}
-                >
-                  {isRemovingBook === book._id ? (
-                    <Loader2 className="animate-spin h-5 w-5" />
-                  ) : (
-                    "Remove"
-                  )}
-                </Button>
-              </div>
-            ))}
-          </div>
+              </Link>
+
+              {/* Remove Button */}
+              <Button
+                variant="outline"
+                onClick={() => handleRemoveBook(book._id)}
+                className="mt-4 self-start text-sm text-gray-700 hover:text-white hover:bg-gray-700 transition-colors duration-200"
+                disabled={isRemovingBook === book._id}
+              >
+                {isRemovingBook === book._id ? (
+                  <Loader2 className="animate-spin h-5 w-5" />
+                ) : (
+                  "Remove"
+                )}
+              </Button>
+            </div>
+          ))}
         </div>
       )}
 
-      <div className="mt-6 space-y-2">
+      <div className="mt-6 space-y-4">
         <Label>Select Book to Add</Label>
         <select
           className="w-full border rounded-md p-2"

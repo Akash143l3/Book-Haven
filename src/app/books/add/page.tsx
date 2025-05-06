@@ -179,6 +179,8 @@ export default function AddBookPage() {
                 src={formData.coverImage}
                 alt="Cover Preview"
                 className="w-32 h-32 object-cover rounded"
+                width={300}
+                height={500}
               />
             </div>
           )}
