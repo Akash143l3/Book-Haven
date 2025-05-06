@@ -49,7 +49,7 @@ export default function BookCollections({ bookId }: { bookId: string }) {
           variant: "destructive",
         });
       } finally {
-        setIsLoading(false); // Set loading to false when data is fetched
+        setIsLoading(false);
       }
     };
 
