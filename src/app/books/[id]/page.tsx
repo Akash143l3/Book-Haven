@@ -1,18 +1,16 @@
+// BookDetailPage.tsx
 import { getBookById } from "../../../lib/mongodb";
 import Image from "next/image";
+import BookCollections from "@/components/BookCollections";
 
-interface BookDetailPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default async function BookDetailPage({ params }: BookDetailPageProps) {
+export default async function BookDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const book = await getBookById(params.id);
 
-  if (!book) {
-    return <div className="text-center py-12">Book not found</div>;
-  }
+  if (!book) return <div className="text-center py-12">Book not found</div>;
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4">
@@ -31,14 +29,7 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
               <div className="text-gray-400">No cover image</div>
             )}
           </div>
-          <div className="mt-4 flex gap-2">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded flex-1 hover:bg-blue-700">
-              Add to Collection
-            </button>
-            <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">
-              ♥
-            </button>
-          </div>
+          <BookCollections bookId={book._id.toString()} />
         </div>
 
         <div className="w-full md:w-2/3">

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast"; // ✅ Toast
 
 interface Book {
   _id: string;
@@ -36,6 +37,7 @@ interface Collection {
 export default function CollectionPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { toast } = useToast(); // ✅ Init toast
 
   const [collection, setCollection] = useState<Collection | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -61,7 +63,11 @@ export default function CollectionPage() {
         const booksData = await bookRes.json();
         setBooks(booksData);
       } catch (error) {
-        console.error("Error fetching collection:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch collection",
+          variant: "destructive",
+        });
       } finally {
         setIsPending(false);
       }
@@ -73,7 +79,11 @@ export default function CollectionPage() {
         const data = await res.json();
         setAllBooks(data);
       } catch (error) {
-        console.error("Error fetching all books:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch all books",
+          variant: "destructive",
+        });
       }
     };
 
@@ -81,65 +91,112 @@ export default function CollectionPage() {
       fetchCollection();
       fetchAllBooks();
     }
-  }, [id]);
+  }, [id, toast]); // ✅ Added toast to dependencies
 
   const handleUpdate = async () => {
     if (!collection) return;
     setIsUpdating(true);
 
-    await fetch(`/api/collections/${id}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        name: collection.name,
-        description: collection.description,
-      }),
-    });
+    try {
+      await fetch(`/api/collections/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: collection.name,
+          description: collection.description,
+        }),
+      });
 
-    setEditOpen(false);
-    setIsUpdating(false);
+      toast({ title: "Collection updated successfully." });
+      setEditOpen(false);
 
-    // Refetch updated data
-    const res = await fetch(`/api/collections/${id}`);
-    const updatedData = await res.json();
-    setCollection(updatedData);
+      const res = await fetch(`/api/collections/${id}`);
+      const updatedData = await res.json();
+      setCollection(updatedData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    await fetch(`/api/collections/${id}`, {
-      method: "DELETE",
-    });
-    router.push("/collections");
+    try {
+      await fetch(`/api/collections/${id}`, { method: "DELETE" });
+      toast({
+        title: "Deleted",
+        description: "Collection deleted successfully.",
+        variant: "destructive",
+      });
+      router.push("/collections");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddBook = async () => {
     if (!selectedBookId) return;
     setIsAddingBook(true);
+    try {
+      await fetch(`/api/collections/${id}/books`, {
+        method: "POST",
+        body: JSON.stringify({ bookId: selectedBookId }),
+      });
 
-    await fetch(`/api/collections/${id}/books`, {
-      method: "POST",
-      body: JSON.stringify({ bookId: selectedBookId }),
-    });
+      toast({
+        title: "Success",
+        description: "Book added to the collection.",
+        variant: "default",
+      });
 
-    setSelectedBookId("");
-    setIsAddingBook(false);
-
-    // Refetch books
-    const bookRes = await fetch(`/api/collections/${id}/books`);
-    const booksData = await bookRes.json();
-    setBooks(booksData);
+      setSelectedBookId("");
+      const bookRes = await fetch(`/api/collections/${id}/books`);
+      const booksData = await bookRes.json();
+      setBooks(booksData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add book",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingBook(false);
+    }
   };
 
   const handleRemoveBook = async (bookId: string) => {
     setIsRemovingBook(bookId);
-    await fetch(`/api/collections/${id}/books/${bookId}`, {
-      method: "DELETE",
-    });
+    try {
+      await fetch(`/api/collections/${id}/books/${bookId}`, {
+        method: "DELETE",
+      });
 
-    const bookRes = await fetch(`/api/collections/${id}/books`);
-    const booksData = await bookRes.json();
-    setBooks(booksData);
-    setIsRemovingBook(null);
+      toast({
+        title: "Removed",
+        description: "Book removed from the collection.",
+        variant: "default",
+      });
+
+      const bookRes = await fetch(`/api/collections/${id}/books`);
+      const booksData = await bookRes.json();
+      setBooks(booksData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove book",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRemovingBook(null);
+    }
   };
 
   const availableBooks = allBooks.filter(
@@ -226,35 +283,37 @@ export default function CollectionPage() {
       ) : books.length === 0 ? (
         <p className="text-sm text-muted-foreground">No books added yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {books.map((book) => (
-            <div
-              key={book._id}
-              className="flex flex-col items-start border p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 ease-in-out"
-            >
-              <div className="space-y-2">
-                <div className="font-medium text-xl">{book.title}</div>
-                <div className="text-sm text-gray-500">{book.author}</div>
-              </div>
-              {book.description && (
-                <div className="mt-4 text-sm text-gray-700">
-                  <p>{book.description}</p>
-                </div>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => handleRemoveBook(book._id)}
-                className="mt-4 self-start"
-                disabled={isRemovingBook === book._id}
+        <div className="max-h-[400px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {books.map((book) => (
+              <div
+                key={book._id}
+                className="flex flex-col items-start border p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-200 ease-in-out"
               >
-                {isRemovingBook === book._id ? (
-                  <Loader2 className="animate-spin h-5 w-5" />
-                ) : (
-                  "Remove"
+                <div className="space-y-2">
+                  <div className="font-medium text-xl">{book.title}</div>
+                  <div className="text-sm text-gray-500">{book.author}</div>
+                </div>
+                {book.description && (
+                  <div className="mt-4 text-sm text-gray-700">
+                    <p>{book.description}</p>
+                  </div>
                 )}
-              </Button>
-            </div>
-          ))}
+                <Button
+                  variant="outline"
+                  onClick={() => handleRemoveBook(book._id)}
+                  className="mt-4 self-start"
+                  disabled={isRemovingBook === book._id}
+                >
+                  {isRemovingBook === book._id ? (
+                    <Loader2 className="animate-spin h-5 w-5" />
+                  ) : (
+                    "Remove"
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
