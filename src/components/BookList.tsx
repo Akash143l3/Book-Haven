@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Book } from "../../types";
+import Image from "next/image";
 
 interface BookListProps {
   books: Book[];
@@ -13,7 +14,7 @@ export default function BookList({ books }: BookListProps) {
           <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
             <div className="h-64 bg-gray-200 flex items-center justify-center">
               {book.coverImage ? (
-                <img
+                <Image
                   src={book.coverImage}
                   alt={book.title}
                   className="h-full w-full object-cover"

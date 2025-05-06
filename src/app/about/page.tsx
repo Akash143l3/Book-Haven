@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export default function AboutPage() {
   return (
     <div className="py-2">
@@ -11,9 +9,9 @@ export default function AboutPage() {
           <p className="mb-4">
             <strong>Book Haven</strong> is a digital library management system
             designed to help you easily organize, track, and enjoy your personal
-            book collection. Whether you're an avid reader or a book enthusiast,
-            our platform provides the tools to maintain a well-organized
-            library.
+            book collection. Whether you&rsquo;re an avid reader or a book
+            enthusiast, our platform provides the tools to maintain a
+            well-organized library.
           </p>
           <p className="mb-4">
             We believe in the joy of reading and the importance of keeping your
@@ -46,11 +44,12 @@ export default function AboutPage() {
             Our Team
           </h2>
           <p className="text-lg text-gray-600 mb-4">
-            At <strong>Book Haven</strong>, we're a passionate team of book
-            lovers dedicated to providing an exceptional digital library
+            At <strong>Book Haven</strong>, we&rsquo;re a passionate team of
+            book lovers dedicated to providing an exceptional digital library
             experience. Our team works hard to ensure that every feature is
             intuitive, fast, and easy to use.
           </p>
+
           <p className="text-lg text-gray-600">
             Join us today and start organizing your books in the most efficient
             way possible.

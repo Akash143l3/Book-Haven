@@ -1,24 +1,57 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+
+type BookType = {
+  _id: string;
+  title: string;
+  author: string;
+  coverImage?: string;
+};
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
-  const [loading, setLoading] = useState(true); // Set loading to true initially
+  const [loading, setLoading] = useState(true);
+  const [isPending, setIsPending] = useState(false);
+  const [books, setBooks] = useState<BookType[]>([]);
+  const [collection, setCollection] = useState<any>(null);
 
-  const fetchCollections = async () => {
-    const res = await fetch("/api/collections");
-    const data = await res.json();
-    setCollections(data);
-    setLoading(false); // Set loading to false after fetching
-  };
+  const params = useParams();
+  const id = params?.id;
+
+  const fetchCollections = useCallback(async () => {
+    try {
+      const res = await fetch("/api/collections");
+      const data = await res.json();
+      setCollections(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+      setLoading(false);
+    }
+  }, []);
+
+  // Placeholder for fetchCollection if needed
+  const fetchCollection = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/collections/${id}`);
+      const data = await res.json();
+      setCollection(data);
+    } catch (error) {
+      console.error("Error fetching single collection:", error);
+    }
+  }, [id]);
 
   useEffect(() => {
     fetchCollections();
-  }, []);
+    fetchCollection();
+  }, [fetchCollections, fetchCollection]);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
@@ -36,7 +69,7 @@ export default function CollectionsPage() {
     if (res.ok) {
       setName("");
       setShowModal(false);
-      fetchCollections(); // Refresh the list
+      fetchCollections(); // Refresh list
     } else {
       alert("Failed to create collection");
     }
@@ -57,8 +90,7 @@ export default function CollectionsPage() {
       {/* Collections Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading
-          ? // Skeleton loading state
-            Array(6)
+          ? Array(6)
               .fill(0)
               .map((_, index) => (
                 <div
@@ -82,10 +114,11 @@ export default function CollectionsPage() {
                 <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
                   <div className="h-48 bg-gray-200 flex items-center justify-center">
                     {collection.coverImage ? (
-                      <img
+                      <Image
                         src={collection.coverImage}
                         alt={collection.name}
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     ) : (
                       <div className="text-gray-400">No cover image</div>
@@ -104,7 +137,7 @@ export default function CollectionsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-semibold mb-4">New Collection</h2>
             <input

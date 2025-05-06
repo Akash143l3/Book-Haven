@@ -1,4 +1,5 @@
 import { getBookById } from "../../../lib/mongodb";
+import Image from "next/image";
 
 interface BookDetailPageProps {
   params: {
@@ -19,9 +20,11 @@ export default async function BookDetailPage({ params }: BookDetailPageProps) {
         <div className="w-full md:w-1/3">
           <div className="bg-gray-200 h-96 rounded-lg flex items-center justify-center">
             {book.coverImage ? (
-              <img
+              <Image
                 src={book.coverImage}
                 alt={book.title}
+                width={400}
+                height={600}
                 className="h-full w-full object-cover rounded-lg"
               />
             ) : (

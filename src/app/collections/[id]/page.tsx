@@ -47,38 +47,40 @@ export default function CollectionPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAddingBook, setIsAddingBook] = useState(false);
-  const [isRemovingBook, setIsRemovingBook] = useState<string | null>(null); // Track book removal state
-
-  const fetchCollection = async () => {
-    try {
-      setIsPending(true);
-      const res = await fetch(`/api/collections/${id}`);
-      const data = await res.json();
-      setCollection(data);
-
-      const bookRes = await fetch(`/api/collections/${id}/books`);
-      const booksData = await bookRes.json();
-      setBooks(booksData);
-    } catch (error) {
-      console.error("Error fetching collection:", error);
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  const fetchAllBooks = async () => {
-    try {
-      const res = await fetch(`/api/books`);
-      const data = await res.json();
-      setAllBooks(data);
-    } catch (error) {
-      console.error("Error fetching all books:", error);
-    }
-  };
+  const [isRemovingBook, setIsRemovingBook] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCollection();
-    fetchAllBooks();
+    const fetchCollection = async () => {
+      try {
+        setIsPending(true);
+        const res = await fetch(`/api/collections/${id}`);
+        const data = await res.json();
+        setCollection(data);
+
+        const bookRes = await fetch(`/api/collections/${id}/books`);
+        const booksData = await bookRes.json();
+        setBooks(booksData);
+      } catch (error) {
+        console.error("Error fetching collection:", error);
+      } finally {
+        setIsPending(false);
+      }
+    };
+
+    const fetchAllBooks = async () => {
+      try {
+        const res = await fetch(`/api/books`);
+        const data = await res.json();
+        setAllBooks(data);
+      } catch (error) {
+        console.error("Error fetching all books:", error);
+      }
+    };
+
+    if (id) {
+      fetchCollection();
+      fetchAllBooks();
+    }
   }, [id]);
 
   const handleUpdate = async () => {
@@ -94,8 +96,12 @@ export default function CollectionPage() {
     });
 
     setEditOpen(false);
-    fetchCollection();
     setIsUpdating(false);
+
+    // Refetch updated data
+    const res = await fetch(`/api/collections/${id}`);
+    const updatedData = await res.json();
+    setCollection(updatedData);
   };
 
   const handleDelete = async () => {
@@ -116,8 +122,12 @@ export default function CollectionPage() {
     });
 
     setSelectedBookId("");
-    fetchCollection();
     setIsAddingBook(false);
+
+    // Refetch books
+    const bookRes = await fetch(`/api/collections/${id}/books`);
+    const booksData = await bookRes.json();
+    setBooks(booksData);
   };
 
   const handleRemoveBook = async (bookId: string) => {
@@ -126,8 +136,10 @@ export default function CollectionPage() {
       method: "DELETE",
     });
 
-    fetchCollection();
-    setIsRemovingBook(null); // Reset loading state after removal
+    const bookRes = await fetch(`/api/collections/${id}/books`);
+    const booksData = await bookRes.json();
+    setBooks(booksData);
+    setIsRemovingBook(null);
   };
 
   const availableBooks = allBooks.filter(
@@ -233,7 +245,7 @@ export default function CollectionPage() {
                 variant="outline"
                 onClick={() => handleRemoveBook(book._id)}
                 className="mt-4 self-start"
-                disabled={isRemovingBook === book._id} // Disable if removal is in progress
+                disabled={isRemovingBook === book._id}
               >
                 {isRemovingBook === book._id ? (
                   <Loader2 className="animate-spin h-5 w-5" />
