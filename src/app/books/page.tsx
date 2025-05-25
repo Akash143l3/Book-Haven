@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import BookList from "@/components/BookList";
 import { useToast } from "@/components/ui/use-toast"; // ✅ Toast import
 import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BooksPage() {
   const [books, setBooks] = useState<any[]>([]);
