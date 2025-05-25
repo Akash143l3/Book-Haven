@@ -29,7 +29,6 @@ export default function EditBookForm({
     format: "Paperback",
   });
 
-  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -81,12 +80,49 @@ export default function EditBookForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Convert file to base64 string
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setCoverFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      try {
+        // Check file size (limit to 5MB for example)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "File too large",
+            description: "Please select an image smaller than 5MB",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Convert to base64
+        const base64String = await convertToBase64(file);
+
+        // Update form data with base64 string
+        setFormData((prev) => ({ ...prev, coverImage: base64String }));
+        setPreviewUrl(base64String);
+
+        toast({
+          title: "Image selected",
+          description: "Image will be updated when you save the book",
+          variant: "default",
+        });
+      } catch (error) {
+        toast({
+          title: "Error processing image",
+          description: "Failed to process the selected image",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -95,17 +131,12 @@ export default function EditBookForm({
 
     startTransition(async () => {
       try {
-        const updatedData = {
-          ...formData,
-          coverImage: previewUrl || formData.coverImage,
-        };
-
         const res = await fetch(`/api/books/${bookId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(updatedData),
+          body: JSON.stringify(formData),
         });
 
         if (res.ok) {
@@ -113,7 +144,12 @@ export default function EditBookForm({
           onSuccess?.();
           window.location.reload();
         } else {
-          toast({ title: "Failed to update book", variant: "destructive" });
+          const errorData = await res.json();
+          toast({
+            title: "Failed to update book",
+            description: errorData.message || "Unknown error",
+            variant: "destructive",
+          });
         }
       } catch (err) {
         toast({
@@ -130,33 +166,22 @@ export default function EditBookForm({
       <div className="space-y-6">
         {/* Skeleton loader */}
         <div className="animate-pulse space-y-4">
-          <div className="bg-gray-300 h-8 w-3/4 rounded"></div>{" "}
-          {/* Title Skeleton */}
-          <div className="bg-gray-300 h-8 w-3/4 rounded"></div>{" "}
-          {/* Author Skeleton */}
-          <div className="bg-gray-300 h-24 w-full rounded"></div>{" "}
-          {/* Description Skeleton */}
-          <div className="bg-gray-300 h-12 w-full rounded"></div>{" "}
-          {/* Cover Image Skeleton */}
+          <div className="bg-gray-300 h-8 w-3/4 rounded"></div>
+          <div className="bg-gray-300 h-8 w-3/4 rounded"></div>
+          <div className="bg-gray-300 h-24 w-full rounded"></div>
+          <div className="bg-gray-300 h-12 w-full rounded"></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Published Date Skeleton */}
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Page Count Skeleton */}
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Genre Skeleton */}
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* ISBN Skeleton */}
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
           </div>
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Publisher Skeleton */}
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Language Skeleton */}
-            <div className="bg-gray-300 h-8 w-full rounded"></div>{" "}
-            {/* Format Skeleton */}
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
+            <div className="bg-gray-300 h-8 w-full rounded"></div>
           </div>
         </div>
       </div>
@@ -207,14 +232,17 @@ export default function EditBookForm({
             onChange={handleImageChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-md"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Maximum file size: 5MB. Supported formats: JPG, PNG, GIF, WebP
+          </p>
           {previewUrl && (
             <div className="mt-4">
               <Image
                 src={previewUrl}
                 alt="Cover Preview"
                 width={128}
-                height={128}
-                className="w-32 h-32 object-cover rounded"
+                height={192}
+                className="w-32 h-48 object-cover rounded shadow-md"
               />
             </div>
           )}
@@ -274,7 +302,7 @@ export default function EditBookForm({
               name="format"
               value={formData.format}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="Paperback">Paperback</option>
               <option value="Hardcover">Hardcover</option>
@@ -288,14 +316,14 @@ export default function EditBookForm({
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
+            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isPending}
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 transition-colors"
           >
             {isPending ? "Saving..." : "Save Book"}
           </button>
