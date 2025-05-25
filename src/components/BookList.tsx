@@ -8,16 +8,16 @@ interface BookListProps {
 
 export default function BookList({ books }: BookListProps) {
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 px-4 sm:px-0">
       {books.map((book) => (
         <Link href={`/books/${book._id}`} key={book._id}>
-          <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
+          <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition bg-white">
             <div className="h-64 bg-gray-200 flex items-center justify-center">
               {book.coverImage ? (
                 <Image
                   src={book.coverImage}
                   alt={book.title}
-                  className="h-full w-full object-cover"
+                  className="object-cover w-full h-full"
                   width={500}
                   height={300}
                 />

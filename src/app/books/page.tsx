@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import BookList from "@/components/BookList";
 import { useToast } from "@/components/ui/use-toast"; // ✅ Toast import
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function BooksPage() {
   const [books, setBooks] = useState<any[]>([]);
@@ -55,7 +56,7 @@ export default function BooksPage() {
         <input
           type="text"
           placeholder="Search books..."
-          className="w-full md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full sm:w-80 md:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={searchQuery}
           onChange={handleSearch}
           disabled={loading}
@@ -63,7 +64,24 @@ export default function BooksPage() {
       </div>
 
       {loading ? (
-        <p className="text-gray-500 text-center">Loading books...</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition"
+            >
+              <Skeleton className="h-64 w-full" /> {/* Image area */}
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-6 w-3/4" /> {/* Title */}
+                <Skeleton className="h-4 w-1/2" /> {/* Author */}
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-16" /> {/* Stars */}
+                  <Skeleton className="h-4 w-8" /> {/* Rating */}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <BookList books={displayBooks} />
       )}

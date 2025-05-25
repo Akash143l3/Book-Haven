@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["www.w3schools.com", "anotherdomain.com", "yetanother.com"], // Add more domains as needed
+    domains: [
+      "www.w3schools.com",
+      "images.unsplash.com",
+      "anotherdomain.com",
+      "yetanother.com",
+    ], // Add more domains as needed
   },
 };
 
