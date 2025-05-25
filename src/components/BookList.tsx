@@ -12,15 +12,14 @@ export default function BookList({ books }: BookListProps) {
       {books.map((book) => (
         <Link href={`/books/${book._id}`} key={book._id}>
           <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition bg-white">
-            <div className="h-64 bg-gray-200 flex items-center justify-center">
+            <div className="h-80 bg-gray-50 flex items-center justify-center overflow-hidden">
               {book.coverImage ? (
                 <Image
                   src={book.coverImage}
                   alt={book.title}
-                  className="block"
-                  width={500}
-                  height={300}
-                  style={{ width: "500px", height: "300px" }}
+                  className="max-w-full max-h-full object-contain"
+                  width={300}
+                  height={320}
                 />
               ) : (
                 <div className="text-gray-400">No cover image</div>

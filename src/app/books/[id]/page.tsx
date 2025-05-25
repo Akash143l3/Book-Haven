@@ -17,14 +17,14 @@ export default async function BookDetailPage({
     <div className="max-w-7xl mx-auto py-12 px-4">
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/3">
-          <div className="bg-gray-200 h-96 rounded-lg flex items-center justify-center">
+          <div className="bg-white border h-96 rounded-lg flex items-center justify-center">
             {book.coverImage ? (
               <Image
                 src={book.coverImage}
                 alt={book.title}
-                width={400}
-                height={600}
-                className="h-full w-full object-cover rounded-lg"
+                className="max-w-full max-h-full object-contain"
+                width={300}
+                height={320}
               />
             ) : (
               <div className="text-gray-400">No cover image</div>
