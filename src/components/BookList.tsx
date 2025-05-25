@@ -17,15 +17,16 @@ export default function BookList({ books }: BookListProps) {
                 <Image
                   src={book.coverImage}
                   alt={book.title}
-                  className="object-cover w-full h-full"
+                  className="block"
                   width={500}
                   height={300}
+                  style={{ width: "500px", height: "300px" }}
                 />
               ) : (
                 <div className="text-gray-400">No cover image</div>
               )}
             </div>
-            <div className="p-4">
+            <div className="p-4 mt-4">
               <h3 className="font-semibold text-lg">{book.title}</h3>
               <p className="text-gray-600 mt-1">{book.author}</p>
               <div className="flex items-center gap-1 mt-2">
