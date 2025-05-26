@@ -11,6 +11,7 @@ export interface Book {
   publisher?: string;
   language?: string;
   format?: string;
+  availableStock?:number;
   createdAt?: Date;
   updatedAt?: Date;
 }

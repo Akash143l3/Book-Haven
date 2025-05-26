@@ -15,7 +15,8 @@ interface BookFormData {
   publisher: string;
   language: string;
   format: string;
-  coverImage: string; // To store base64 image data
+  coverImage: string;
+  availableStock: number;
 }
 
 export default function AddBookPage() {
@@ -32,6 +33,7 @@ export default function AddBookPage() {
     language: "",
     format: "Paperback",
     coverImage: "",
+    availableStock: 0
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -40,10 +42,19 @@ export default function AddBookPage() {
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    // Convert availableStock to number
+    if (name === 'availableStock') {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: parseInt(value) || 0,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -53,25 +64,39 @@ export default function AddBookPage() {
       reader.onloadend = () => {
         setFormData((prev) => ({
           ...prev,
-          coverImage: reader.result as string, // This will be the base64 string of the image
+          coverImage: reader.result as string,
         }));
       };
-      reader.readAsDataURL(file); // Read the file as a data URL (base64 string)
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError("");
 
+    if (formData.availableStock <= 0) {
+      setError("Available stock must be greater than 0.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
+      // Ensure availableStock is a number before sending
+      const submitData = {
+        ...formData,
+        availableStock: Number(formData.availableStock),
+        pageCount: formData.pageCount ? Number(formData.pageCount) : undefined
+      };
+
       const response = await fetch("/api/books", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -159,6 +184,26 @@ export default function AddBookPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           ></textarea>
         </div>
+
+        <div>
+          <label
+            htmlFor="availableStock"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Available Stock *
+          </label>
+          <input
+            type="number"
+            id="availableStock"
+            name="availableStock"
+            value={formData.availableStock}
+            onChange={handleChange}
+            required
+            min="1"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div>
           <label
             htmlFor="coverImage"
@@ -185,6 +230,7 @@ export default function AddBookPage() {
             </div>
           )}
         </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label

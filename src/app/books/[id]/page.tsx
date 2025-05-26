@@ -36,6 +36,7 @@ export default async function BookDetailPage({
         <div className="w-full md:w-2/3">
           <h1 className="text-3xl font-bold mb-2">{book.title}</h1>
           <p className="text-gray-600 mb-4">by {book.author}</p>
+          <p className="text-gray-600 mb-4">Available stocks : {book.availableStock}</p>
 
           <div className="mb-6">
             <div className="flex items-center gap-1 mb-2">

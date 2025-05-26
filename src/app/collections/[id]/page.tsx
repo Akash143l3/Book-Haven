@@ -432,9 +432,10 @@ export default function CollectionPage() {
 
                 {/* Book Description */}
                 {book.description && (
-                  <div className="text-sm text-gray-700 mt-4">
+                  <div className="text-sm text-gray-700 mt-4 w-64 line-clamp-3">
                     <p>{book.description}</p>
                   </div>
+
                 )}
               </Link>
 
