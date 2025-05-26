@@ -36,6 +36,12 @@ export default function Navbar() {
             >
               About
             </Link>
+             <Link
+              href="/borrowed"
+              className="text-gray-700 hover:text-blue-600 font-medium transition duration-300 py-2 px-4 rounded-md hover:bg-blue-100"
+            >
+              Borrowed
+            </Link>
             <Link href="/books/add">
               <button className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300">
                 Add Book
@@ -79,6 +85,13 @@ export default function Navbar() {
               onClick={() => setIsMenuOpen(false)}
             >
               About
+            </Link>
+            <Link
+              href="/borrowed"
+              className="block text-gray-700 hover:text-blue-600 font-medium py-2"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Borrowed
             </Link>
             <Link href="/books/add">
               <button
