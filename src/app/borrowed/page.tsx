@@ -1,350 +1,800 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Calendar, User, Book, Clock } from "lucide-react";
+  Search,
+  BookOpen,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  ArrowLeft,
+  Plus,
+  AlertTriangle,
+  CheckCircle,
+  Menu,
+  X,
+} from "lucide-react";
+
+// Types based on your API
+interface Book {
+  _id: string;
+  title: string;
+  author: string;
+  publishedDate: string;
+  coverImage?: string;
+  isbn?: string;
+}
 
 interface BorrowedBook {
-  id: string;
+  _id: string;
   borrowerName: string;
   borrowerEmail: string;
+  borrowerPhone?: string;
   bookId: string;
-  bookTitle: string;
-  bookAuthor: string;
+  book?: Book;
   borrowDate: string;
   dueDate: string;
   returnDate?: string;
-  status: 'borrowed' | 'overdue' | 'returned';
+  status: "borrowed" | "returned" | "overdue";
+  notes?: string;
   fine?: number;
 }
 
-export default function BorrowedBooksPage() {
-  const [borrowedBooks, setBorrowedBooks] = useState<BorrowedBook[]>([]);
-  const [filteredBooks, setFilteredBooks] = useState<BorrowedBook[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [loading, setLoading] = useState(true);
+interface BorrowBookRequest {
+  borrowerName: string;
+  borrowerEmail: string;
+  borrowerPhone?: string;
+  bookId: string;
+  dueDate: string;
+  notes?: string;
+}
 
-  // Mock data - replace with actual API call
+export default function LibraryManagementSystem() {
+  const [currentView, setCurrentView] = useState<
+    "dashboard" | "borrow" | "borrowed" | "overdue"
+  >("dashboard");
+  const [books, setBooks] = useState<Book[]>([]);
+  const [borrowedBooks, setBorrowedBooks] = useState<BorrowedBook[]>([]);
+  const [overdueBooks, setOverdueBooks] = useState<BorrowedBook[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  // Borrow form state
+  const [borrowForm, setBorrowForm] = useState<BorrowBookRequest>({
+    borrowerName: "",
+    borrowerEmail: "",
+    borrowerPhone: "",
+    bookId: "",
+    dueDate: "",
+    notes: "",
+  });
+
   useEffect(() => {
-    // Simulate API call
-    const mockData: BorrowedBook[] = [
-      {
-        id: "1",
-        borrowerName: "John Doe",
-        borrowerEmail: "john@example.com",
-        bookId: "B001",
-        bookTitle: "The Great Gatsby",
-        bookAuthor: "F. Scott Fitzgerald",
-        borrowDate: "2024-01-15",
-        dueDate: "2024-02-15",
-        status: "borrowed"
-      },
-      {
-        id: "2",
-        borrowerName: "Jane Smith",
-        borrowerEmail: "jane@example.com",
-        bookId: "B002",
-        bookTitle: "To Kill a Mockingbird",
-        bookAuthor: "Harper Lee",
-        borrowDate: "2024-01-10",
-        dueDate: "2024-02-10",
-        status: "overdue",
-        fine: 5.50
-      },
-      {
-        id: "3",
-        borrowerName: "Mike Johnson",
-        borrowerEmail: "mike@example.com",
-        bookId: "B003",
-        bookTitle: "1984",
-        bookAuthor: "George Orwell",
-        borrowDate: "2024-01-05",
-        dueDate: "2024-02-05",
-        returnDate: "2024-02-03",
-        status: "returned"
-      },
-      {
-        id: "4",
-        borrowerName: "Sarah Wilson",
-        borrowerEmail: "sarah@example.com",
-        bookId: "B004",
-        bookTitle: "Pride and Prejudice",
-        bookAuthor: "Jane Austen",
-        borrowDate: "2024-01-20",
-        dueDate: "2024-02-20",
-        status: "borrowed"
-      },
-      {
-        id: "5",
-        borrowerName: "Tom Brown",
-        borrowerEmail: "tom@example.com",
-        bookId: "B005",
-        bookTitle: "The Catcher in the Rye",
-        bookAuthor: "J.D. Salinger",
-        borrowDate: "2024-01-01",
-        dueDate: "2024-02-01",
-        status: "overdue",
-        fine: 12.00
-      }
-    ];
-    
-    setTimeout(() => {
-      setBorrowedBooks(mockData);
-      setFilteredBooks(mockData);
-      setLoading(false);
-    }, 1000);
+    fetchBooks();
+    fetchBorrowedBooks();
+    fetchOverdueBooks();
   }, []);
 
-  // Filter books based on search term and status
-  useEffect(() => {
-    let filtered = borrowedBooks;
+  const showMessage = (type: "success" | "error", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 5000);
+  };
 
-    if (searchTerm) {
-      filtered = filtered.filter(book => 
-        book.borrowerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.bookTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.bookAuthor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.bookId.toLowerCase().includes(searchTerm.toLowerCase())
+  const fetchBooks = async () => {
+    try {
+      const response = await fetch("/api/books");
+      const data = await response.json();
+      setBooks(data);
+    } catch (error) {
+      showMessage("error", "Failed to fetch books");
+    }
+  };
+
+  const fetchBorrowedBooks = async () => {
+    try {
+      const response = await fetch("/api/borrowed-books");
+      const data = await response.json();
+      setBorrowedBooks(data);
+    } catch (error) {
+      showMessage("error", "Failed to fetch borrowed books");
+    }
+  };
+
+  const fetchOverdueBooks = async () => {
+    try {
+      const response = await fetch("/api/borrowed-books/overdue");
+      const data = await response.json();
+      setOverdueBooks(data);
+    } catch (error) {
+      showMessage("error", "Failed to fetch overdue books");
+    }
+  };
+
+  const handleBorrowBook = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/borrowed-books/borrow", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(borrowForm),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showMessage("success", "Book borrowed successfully!");
+        setBorrowForm({
+          borrowerName: "",
+          borrowerEmail: "",
+          borrowerPhone: "",
+          bookId: "",
+          dueDate: "",
+          notes: "",
+        });
+        fetchBorrowedBooks();
+        setCurrentView("borrowed");
+      } else {
+        showMessage("error", result.message || "Failed to borrow book");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to borrow book");
+    }
+
+    setLoading(false);
+  };
+
+  const handleReturnBook = async (borrowId: string) => {
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `/api/borrowed-books/return?borrowId=${borrowId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }
       );
+
+      const result = await response.json();
+
+      if (result.success) {
+        showMessage("success", "Book returned successfully!");
+        fetchBorrowedBooks();
+        fetchOverdueBooks();
+      } else {
+        showMessage("error", result.message || "Failed to return book");
+      }
+    } catch (error) {
+      showMessage("error", "Failed to return book");
     }
 
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(book => book.status === statusFilter);
+    setLoading(false);
+  };
+
+  const updateOverdueStatus = async () => {
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/borrowed-books/overdue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ finePerDay: 0.5 }),
+      });
+
+      const result = await response.json();
+      showMessage("success", result.message);
+      fetchOverdueBooks();
+      fetchBorrowedBooks();
+    } catch (error) {
+      showMessage("error", "Failed to update overdue status");
     }
 
-    setFilteredBooks(filtered);
-  }, [searchTerm, statusFilter, borrowedBooks]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'borrowed':
-        return <Badge variant="default" className="bg-blue-500">Borrowed</Badge>;
-      case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>;
-      case 'returned':
-        return <Badge variant="secondary" className="bg-green-500 text-white">Returned</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    setLoading(false);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const filteredBooks = books.filter(
+    (book) =>
+      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.author.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredBorrowedBooks = borrowedBooks.filter(
+    (book) =>
+      book.borrowerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.borrowerEmail.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: BookOpen },
+    { id: "borrow", label: "Borrow Book", icon: Plus },
+    { id: "borrowed", label: "Borrowed Books", icon: User },
+    {
+      id: "overdue",
+      label: "Overdue Books",
+      icon: AlertTriangle,
+      isAlert: true,
+    },
+  ];
+
+  const handleTabClick = (tabId: string) => {
+    setCurrentView(tabId as any);
+    setMobileMenuOpen(false);
   };
 
-  const calculateDaysOverdue = (dueDate: string) => {
-    const today = new Date();
-    const due = new Date(dueDate);
-    const diffTime = today.getTime() - due.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading borrowed books...</p>
+  const renderDashboard = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="bg-blue-500 text-white p-6 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Total Books</h3>
+            <p className="text-3xl font-bold">{books.length}</p>
+          </div>
+          <BookOpen className="h-12 w-12 opacity-80" />
         </div>
       </div>
-    );
-  }
+
+      <div className="bg-green-500 text-white p-6 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Currently Borrowed</h3>
+            <p className="text-3xl font-bold">
+              {borrowedBooks.filter((b) => b.status === "borrowed").length}
+            </p>
+          </div>
+          <User className="h-12 w-12 opacity-80" />
+        </div>
+      </div>
+
+      <div className="bg-red-500 text-white p-6 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Overdue Books</h3>
+            <p className="text-3xl font-bold">{overdueBooks.length}</p>
+          </div>
+          <AlertTriangle className="h-12 w-12 opacity-80" />
+        </div>
+      </div>
+
+      <div className="bg-purple-500 text-white p-6 rounded-lg shadow-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Total Returns</h3>
+            <p className="text-3xl font-bold">
+              {borrowedBooks.filter((b) => b.status === "returned").length}
+            </p>
+          </div>
+          <CheckCircle className="h-12 w-12 opacity-80" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBorrowForm = () => (
+    <div className="max-w-2xl mx-auto">
+      <button
+        onClick={() => setCurrentView("dashboard")}
+        className="flex items-center text-blue-600 hover:text-blue-800 mb-6"
+      >
+        <ArrowLeft className="h-4 w-4 mr-2" />
+        Back to Dashboard
+      </button>
+
+      <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+        <h2 className="text-2xl font-bold mb-6">Borrow a Book</h2>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="h-4 w-4 inline mr-2" />
+                Borrower Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={borrowForm.borrowerName}
+                onChange={(e) =>
+                  setBorrowForm({ ...borrowForm, borrowerName: e.target.value })
+                }
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter borrower name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Mail className="h-4 w-4 inline mr-2" />
+                Email Address *
+              </label>
+              <input
+                type="email"
+                required
+                value={borrowForm.borrowerEmail}
+                onChange={(e) =>
+                  setBorrowForm({
+                    ...borrowForm,
+                    borrowerEmail: e.target.value,
+                  })
+                }
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter email address"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Phone className="h-4 w-4 inline mr-2" />
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                value={borrowForm.borrowerPhone}
+                onChange={(e) =>
+                  setBorrowForm({
+                    ...borrowForm,
+                    borrowerPhone: e.target.value,
+                  })
+                }
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter phone number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="h-4 w-4 inline mr-2" />
+                Due Date *
+              </label>
+              <input
+                type="date"
+                required
+                value={borrowForm.dueDate}
+                onChange={(e) =>
+                  setBorrowForm({ ...borrowForm, dueDate: e.target.value })
+                }
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <BookOpen className="h-4 w-4 inline mr-2" />
+              Select Book *
+            </label>
+            <select
+              required
+              value={borrowForm.bookId}
+              onChange={(e) =>
+                setBorrowForm({ ...borrowForm, bookId: e.target.value })
+              }
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select a book...</option>
+              {books.map((book) => (
+                <option key={book._id} value={book._id}>
+                  {book.title} by {book.author}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Notes
+            </label>
+            <textarea
+              value={borrowForm.notes}
+              onChange={(e) =>
+                setBorrowForm({ ...borrowForm, notes: e.target.value })
+              }
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              placeholder="Any additional notes..."
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleBorrowBook}
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+          >
+            {loading ? "Processing..." : "Borrow Book"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBorrowedBooks = () => (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold">Borrowed Books</h2>
+        <div className="relative">
+          <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search borrowed books..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Borrower
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Book
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Borrow Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredBorrowedBooks.map((borrowedBook) => {
+                const book = books.find((b) => b._id === borrowedBook.bookId);
+                return (
+                  <tr key={borrowedBook._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {borrowedBook.borrowerName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {borrowedBook.borrowerEmail}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {book?.title || "Unknown Book"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {book?.author || "Unknown Author"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(borrowedBook.borrowDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(borrowedBook.dueDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          borrowedBook.status === "borrowed"
+                            ? "bg-green-100 text-green-800"
+                            : borrowedBook.status === "overdue"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {borrowedBook.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {borrowedBook.status === "borrowed" && (
+                        <button
+                          onClick={() => handleReturnBook(borrowedBook._id)}
+                          disabled={loading}
+                          className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                        >
+                          Return Book
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderOverdueBooks = () => (
+    <div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+        <h2 className="text-2xl font-bold text-red-600">Overdue Books</h2>
+        <button
+          onClick={updateOverdueStatus}
+          disabled={loading}
+          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm sm:text-base"
+        >
+          Update Overdue Status
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-red-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Borrower
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Book
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Due Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Days Overdue
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Fine
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {overdueBooks.map((borrowedBook) => {
+                const book = books.find((b) => b._id === borrowedBook.bookId);
+                const daysOverdue = Math.ceil(
+                  (new Date().getTime() -
+                    new Date(borrowedBook.dueDate).getTime()) /
+                    (1000 * 3600 * 24)
+                );
+                return (
+                  <tr key={borrowedBook._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {borrowedBook.borrowerName}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {borrowedBook.borrowerEmail}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {book?.title || "Unknown Book"}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {book?.author || "Unknown Author"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                      {new Date(borrowedBook.dueDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">
+                      {daysOverdue} days
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">
+                      ₹ {borrowedBook.fine?.toFixed(2) || "0.00"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleReturnBook(borrowedBook._id)}
+                        disabled={loading}
+                        className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
+                      >
+                        Return Book
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Borrowed Books</h1>
-          <p className="text-gray-600">Manage and track all borrowed books</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Borrowed</CardTitle>
-              <Book className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{borrowedBooks.length}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Currently Borrowed</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {borrowedBooks.filter(book => book.status === 'borrowed').length}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {borrowedBooks.filter(book => book.status === 'overdue').length}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Fines</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                ${borrowedBooks.reduce((sum, book) => sum + (book.fine || 0), 0).toFixed(2)}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by borrower, book title, author, or book ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4 sm:py-6">
+            {/* Mobile menu button */}
+            <div className="lg:hidden">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 text-gray-600 hover:text-gray-900"
               >
-                <option value="all">All Status</option>
-                <option value="borrowed">Borrowed</option>
-                <option value="overdue">Overdue</option>
-                <option value="returned">Returned</option>
-              </select>
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Borrowed Books List</CardTitle>
-            <CardDescription>
-              Showing {filteredBooks.length} of {borrowedBooks.length} borrowed books
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableCaption>
-                {filteredBooks.length === 0 ? "No borrowed books found." : "A list of all borrowed books."}
-              </TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Borrower</TableHead>
-                  <TableHead>Book ID</TableHead>
-                  <TableHead>Book Details</TableHead>
-                  <TableHead>Borrow Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Return Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Fine</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredBooks.map((book) => (
-                  <TableRow key={book.id}>
-                    <TableCell className="font-medium">{book.id}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{book.borrowerName}</div>
-                        <div className="text-sm text-gray-500">{book.borrowerEmail}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono">{book.bookId}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{book.bookTitle}</div>
-                        <div className="text-sm text-gray-500">by {book.bookAuthor}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDate(book.borrowDate)}</TableCell>
-                    <TableCell>
-                      <div>
-                        {formatDate(book.dueDate)}
-                        {book.status === 'overdue' && (
-                          <div className="text-xs text-red-600">
-                            {calculateDaysOverdue(book.dueDate)} days overdue
+            {/* Desktop tabs */}
+            <div className="hidden lg:block">
+              <nav className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id)}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                        currentView === tab.id
+                          ? tab.isAlert
+                            ? "bg-red-600 text-white shadow-sm"
+                            : "bg-blue-600 text-white shadow-sm"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden xl:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+
+          {/* Mobile tabs */}
+          {mobileMenuOpen && (
+            <div className="lg:hidden border-t border-gray-200 py-2">
+              <nav className="space-y-1">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id)}
+                      className={`w-full flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 ${
+                        currentView === tab.id
+                          ? tab.isAlert
+                            ? "bg-red-50 text-red-700 border-l-4 border-red-600"
+                            : "bg-blue-50 text-blue-700 border-l-4 border-blue-600"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Message */}
+      {message && (
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4`}>
+          <div
+            className={`p-4 rounded-lg ${
+              message.type === "success"
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}
+          >
+            {message.text}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentView === "dashboard" && (
+          <div>
+            {renderDashboard()}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  Recent Borrowed Books
+                </h3>
+                <div className="space-y-3">
+                  {borrowedBooks.slice(0, 5).map((borrowedBook) => {
+                    const book = books.find(
+                      (b) => b._id === borrowedBook.bookId
+                    );
+                    return (
+                      <div
+                        key={borrowedBook._id}
+                        className="flex justify-between items-center py-2 border-b"
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {book?.title || "Unknown Book"}
                           </div>
-                        )}
+                          <div className="text-sm text-gray-500">
+                            {borrowedBook.borrowerName}
+                          </div>
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            borrowedBook.status === "borrowed"
+                              ? "bg-green-100 text-green-800"
+                              : borrowedBook.status === "overdue"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {borrowedBook.status}
+                        </span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      {book.returnDate ? formatDate(book.returnDate) : '-'}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(book.status)}</TableCell>
-                    <TableCell>
-                      {book.fine ? (
-                        <span className="text-red-600 font-medium">${book.fine.toFixed(2)}</span>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {book.status !== 'returned' && (
-                          <Button size="sm" variant="outline">
-                            Mark Returned
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost">
-                          View Details
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setCurrentView("borrow")}
+                    className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center"
+                  >
+                    <Plus className="h-5 w-5 text-blue-600 mr-3" />
+                    <span className="font-medium text-blue-600">
+                      Borrow a New Book
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentView("borrowed")}
+                    className="w-full text-left p-3 bg-green-50 hover:bg-green-100 rounded-lg flex items-center"
+                  >
+                    <BookOpen className="h-5 w-5 text-green-600 mr-3" />
+                    <span className="font-medium text-green-600">
+                      View All Borrowed Books
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentView("overdue")}
+                    className="w-full text-left p-3 bg-red-50 hover:bg-red-100 rounded-lg flex items-center"
+                  >
+                    <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
+                    <span className="font-medium text-red-600">
+                      Check Overdue Books
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {currentView === "borrow" && renderBorrowForm()}
+        {currentView === "borrowed" && renderBorrowedBooks()}
+        {currentView === "overdue" && renderOverdueBooks()}
       </div>
     </div>
   );
