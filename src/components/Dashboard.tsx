@@ -236,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Library Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's what's happening in your library today.
+          Welcome back! Here&apos;s what&apos;s happening in your library today.
         </p>
       </div>
 
