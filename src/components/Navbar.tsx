@@ -40,7 +40,7 @@ export default function Navbar() {
               href="/borrowed"
               className="text-gray-700 hover:text-blue-600 font-medium transition duration-300 py-2 px-4 rounded-md hover:bg-blue-100"
             >
-              Borrowed
+              Borrow
             </Link>
             <Link href="/books/add">
               <button className="bg-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:bg-blue-700 transition-all duration-300">

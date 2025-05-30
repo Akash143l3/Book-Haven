@@ -79,7 +79,12 @@ export default function EditBookForm({
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+   setFormData((prev) => ({
+    ...prev,
+    [name]: name === "availableStock" || name === "pageCount"
+      ? Number(value)
+      : value,
+  }));
   };
 
   // Convert file to base64 string

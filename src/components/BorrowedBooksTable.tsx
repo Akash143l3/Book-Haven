@@ -109,7 +109,7 @@ const filteredBorrowedBooks = borrowedBooks
                       <div className="text-gray-500">{borrowedBook.borrowerEmail}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="font-semibold text-gray-800">
+                     <div className="h-4 w-60 font-semibold truncate text-gray-800 overflow-hidden whitespace-nowrap">
                         {book ? (
                           book.title
                         ) : (
