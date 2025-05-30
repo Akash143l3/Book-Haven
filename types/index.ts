@@ -83,3 +83,8 @@ export interface LibraryStats {
   totalFines: number;
   availableBooks: number;
 }
+
+export interface Message {
+  type: "success" | "error";
+  text: string;
+}
