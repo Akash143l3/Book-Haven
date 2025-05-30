@@ -3,7 +3,7 @@ import { getOverdueBooks, updateOverdueStatus } from "@/lib/mongodb";
 import { BorrowedBook } from "../../../../../types";
 
 // Default fine amount in rupees per day
-const DEFAULT_FINE_PER_DAY_RUPEES = 100; // ₹10 per day
+const DEFAULT_FINE_PER_DAY_RUPEES = 100; 
 
 // GET /api/borrowed-books/overdue - Get overdue books
 export async function GET(): Promise<NextResponse> {
