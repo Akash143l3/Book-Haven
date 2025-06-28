@@ -338,15 +338,15 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="flex justify-between items-start space-x-4">
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">
-  {book ? (
-    book.title
+  {borrowedBook ? (
+    borrowedBook.bookTitle
   ) : (
     <div className="h-4 bg-gray-200 rounded w-32 animate-pulse" />
   )}
 </div>
 <div className="text-sm text-muted-foreground">
-  {book ? (
-    <>by {book.author}</>
+  {borrowedBook ? (
+    <>by {borrowedBook.bookAuthor}</>
   ) : (
     <div className="h-3 bg-gray-100 rounded w-24 animate-pulse" />
   )}

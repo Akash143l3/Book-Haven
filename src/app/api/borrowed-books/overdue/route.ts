@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOverdueBooks, updateOverdueStatus } from "@/lib/mongodb";
+import { connectToDatabase, getOverdueBooks, updateOverdueStatus } from "@/lib/mongodb";
 import { BorrowedBook } from "../../../../../types";
 
 
@@ -28,11 +28,12 @@ export async function GET(): Promise<NextResponse> {
   }
 }
 
-// POST /api/borrowed-books/overdue - Update overdue status and calculate fines
+
+// 2. API endpoint for manual and scheduled updates
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
-    const finePerDay = body.finePerDay ;
+    const finePerDay = body.finePerDay || 50; // Default to ₹50 per day
 
     const updatedCount = await updateOverdueStatus(finePerDay);
 
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         message: `Updated ${updatedCount} overdue books with fine of ₹${finePerDay} per day`,
         updatedCount,
         finePerDay: `₹${finePerDay}`,
+        timestamp: new Date().toISOString(),
       },
       { status: 200 }
     );

@@ -99,7 +99,6 @@ const filteredBorrowedBooks = borrowedBooks
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {filteredBorrowedBooks.map((borrowedBook) => {
-                const book = books.find((b) => b._id === borrowedBook.bookId);
                 return (
                   <tr key={borrowedBook._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -110,15 +109,15 @@ const filteredBorrowedBooks = borrowedBooks
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                      <div className="h-4 w-60 font-semibold truncate text-gray-800 overflow-hidden whitespace-nowrap">
-                        {book ? (
-                          book.title
+                        {borrowedBook ? (
+                          borrowedBook.bookTitle
                         ) : (
                           <div className="h-4 w-24 bg-gray-200 animate-pulse rounded"></div>
                         )}
                       </div>
                       <div className="text-gray-500">
-                        {book ? (
-                          `by ${book.author}`
+                        {borrowedBook ? (
+                          `by ${borrowedBook.bookAuthor}`
                         ) : (
                           <div className="h-3 w-20 bg-gray-100 animate-pulse rounded"></div>
                         )}

@@ -456,46 +456,6 @@ export async function updateBorrowedBook(
   );
 }
 
-// Update overdue status and calculate fines (should be run periodically)
-export async function updateOverdueStatus(
-  finePerDay: number = 10 // Default ₹10 per day
-): Promise<number> {
-  const { db } = await connectToDatabase();
-  const today = new Date();
-
-  // Find all borrowed books that are past due date
-  const overdueBooks = await db
-    .collection("borrowed_books")
-    .find({
-      dueDate: { $lt: today },
-      status: "borrowed",
-    })
-    .toArray();
-
-  let updatedCount = 0;
-
-  for (const book of overdueBooks) {
-    const daysOverdue = Math.ceil(
-      (today.getTime() - new Date(book.dueDate).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-    const fine = daysOverdue * finePerDay; // Fine amount in rupees
-
-    await db.collection("borrowed_books").updateOne(
-      { _id: book._id },
-      {
-        $set: {
-          status: "overdue",
-          fine: fine, // Fine stored in rupees
-          updatedAt: new Date(),
-        },
-      }
-    );
-    updatedCount++;
-  }
-
-  return updatedCount;
-}
 
 // Search Function
 export async function searchBooks(query: string, limit = 100): Promise<Book[]> {
@@ -545,4 +505,48 @@ export async function searchBorrowedBooks(
     _id: book._id.toString(),
     bookId: book.bookId.toString(),
   })) as BorrowedBook[];
+}
+
+
+// 1. Enhanced updateOverdueStatus function that recalculates fines daily
+export async function updateOverdueStatus(
+  finePerDay: number = 50
+): Promise<number> {
+  const { db } = await connectToDatabase();
+  const today = new Date();
+
+  // Find all overdue books (both newly overdue and already overdue)
+  const overdueBooks = await db
+    .collection("borrowed_books")
+    .find({
+      dueDate: { $lt: today },
+      status: { $in: ["borrowed", "overdue"] }, // Include both statuses
+    })
+    .toArray();
+
+  let updatedCount = 0;
+
+  for (const book of overdueBooks) {
+    const daysOverdue = Math.ceil(
+      (today.getTime() - new Date(book.dueDate).getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+    const fine = daysOverdue * finePerDay; // Recalculate fine based on current days overdue
+
+    await db.collection("borrowed_books").updateOne(
+      { _id: book._id },
+      {
+        $set: {
+          status: "overdue",
+          fine: fine, // Update fine amount
+          daysOverdue: daysOverdue,
+          lastFineUpdate: new Date(), // Track when fine was last updated
+          updatedAt: new Date(),
+        },
+      }
+    );
+    updatedCount++;
+  }
+
+  return updatedCount;
 }

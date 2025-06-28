@@ -17,6 +17,8 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
   onUpdateOverdueStatus,
   loading,
 }) => {
+  const FINE_PER_DAY = 50; // ₹50 per day fine rate
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
@@ -32,8 +34,8 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-red-50">
+          <table className="w-full divide-y divide-gray-200">
+            <thead className="w-full bg-red-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
                   Borrower
@@ -48,7 +50,7 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
                   Days Overdue
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
-                  Fine
+                  Fine (₹50/day)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-red-500 uppercase tracking-wider">
                   Actions
@@ -61,8 +63,13 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
                 const daysOverdue = Math.ceil(
                   (new Date().getTime() -
                     new Date(borrowedBook.dueDate).getTime()) /
-                    (1000 * 3600 * 24)
+                    (1000 * 60 * 60 * 24) // Fixed: Changed 3600 to 60 * 60 for consistency
                 );
+                
+                // Calculate fine based on days overdue
+                const calculatedFine = daysOverdue * FINE_PER_DAY;
+                const displayFine = calculatedFine;
+                
                 return (
                   <tr key={borrowedBook._id}>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -75,12 +82,12 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {book?.title || "Unknown Book"}
+                    <td className="px-6 py-4 whitespace-nowrap ">
+                      <div className="text-sm font-medium text-gray-900 w-80 truncate">
+                        {borrowedBook.bookTitle || "Unknown Book"}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {book?.author || "Unknown Author"}
+                      <div className="text-sm text-gray-500 truncate">
+                        {borrowedBook.bookAuthor || "Unknown Author"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
@@ -90,7 +97,7 @@ const OverdueBooksTable: React.FC<OverdueBooksTableProps> = ({
                       {daysOverdue} days
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">
-                      ₹ {borrowedBook.fine?.toFixed(2) || "0.00"}
+                      ₹ {displayFine.toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button

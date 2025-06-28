@@ -4,6 +4,12 @@ import "./globals.css";
 import { Metadata } from "next";
 import Link from "next/link";
 import { Toaster } from "@/components/ui/toaster";
+import { startDailyFineUpdates } from '@/lib/cronJobs';
+
+// Call this when your app starts
+if (process.env.NODE_ENV === 'production') {
+  startDailyFineUpdates();
+}
 
 export const metadata: Metadata = {
   title: "Book Haven - Digital Library Management",
